@@ -126,7 +126,7 @@ jobs:
 
       - name: Install Homebrew subversion if needed for downloading sources
         run: |
-          if brew deps --include-implicit --direct "$FORMULA" | grep -Fqx subversion; then
+          if comm -23 <(brew deps --include-implicit --direct "$FORMULA" | sort) <(brew deps --direct "$FORMULA" | sort) | grep -Fqx subversion; then
             brew install subversion
           fi
 
