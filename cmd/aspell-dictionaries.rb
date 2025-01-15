@@ -16,6 +16,11 @@ module Homebrew
         EOS
       end
 
+      FILE_PATH_REGEX = T.let(%r{
+        <td[^>]*?>.*?href=["']?
+        (?<path>[^"' >]*?(?<language>[^/]+)/aspell[^"' >]+\.t[^/"' >]+)
+      }ix, Regexp)
+
       sig { override.void }
       def run
         dictionary_url = "https://ftp.gnu.org/gnu/aspell/dict"
@@ -23,12 +28,10 @@ module Homebrew
         languages = {}
 
         index_output = Utils::Curl.curl_output("#{dictionary_url}/0index.html").stdout
-        index_output.split("<tr><td>").each do |line|
-          next unless line.start_with?("<a ")
-
-          _, language, _, path, = line.split('"')
-          language&.tr!("-", "_")
-          languages[language] = path if language && path
+        index_output.scan(FILE_PATH_REGEX).each do |match|
+          # The first capture group is the file path (e.g. `en/aspell6-en-2020.12.07-0.tar.bz2`)
+          # The second capture group is the language (e.g. `en`)
+          languages[T.must(match[1]).tr("-", "_")] = match[0]
         end
 
         resources = languages.map do |language, path|
