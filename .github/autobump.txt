@@ -74,6 +74,7 @@ apache-flink-cdc
 apache-geode
 apache-opennlp
 apache-pulsar
+apache-serf
 apache-spark
 apachetop
 apibuilder-cli
