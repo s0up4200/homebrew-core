@@ -2,6 +2,7 @@ class Subversion < Formula
   desc "Version control system designed to be a better CVS"
   homepage "https://subversion.apache.org/"
   license "Apache-2.0"
+  revision 1
 
   stable do
     url "https://www.apache.org/dyn/closer.lua?path=subversion/subversion-1.14.5.tar.bz2"
@@ -36,7 +37,6 @@ class Subversion < Formula
   depends_on "pkgconf" => :build
   depends_on "python-setuptools" => :build
   depends_on "python@3.13" => [:build, :test]
-  depends_on "scons" => :build # For Serf
   depends_on "swig" => :build
   depends_on "apr"
   depends_on "apr-util"
@@ -45,7 +45,6 @@ class Subversion < Formula
   # gettext, lz4 and utf8proc for consistency
   depends_on "gettext"
   depends_on "lz4"
-  depends_on "openssl@3" # For Serf
   depends_on "utf8proc"
 
   uses_from_macos "expat"
@@ -81,43 +80,8 @@ class Subversion < Formula
 
   def install
     py3c_prefix = buildpath/"py3c"
-    serf_prefix = libexec/"serf"
 
     resource("py3c").unpack py3c_prefix
-    resource("serf").stage do
-      if OS.linux?
-        inreplace "SConstruct" do |s|
-          s.gsub! "env.Append(LIBPATH=['$OPENSSL/lib'])",
-          "\\1\nenv.Append(CPPPATH=['$ZLIB/include'])\nenv.Append(LIBPATH=['$ZLIB/lib'])"
-        end
-      end
-
-      inreplace "SConstruct" do |s|
-        s.gsub! "variables=opts,",
-        "variables=opts, RPATHPREFIX = '-Wl,-rpath,',"
-      end
-
-      # scons ignores our compiler and flags unless explicitly passed
-      krb5 = if OS.mac?
-        "/usr"
-      else
-        Formula["krb5"].opt_prefix
-      end
-
-      args = %W[
-        PREFIX=#{serf_prefix} GSSAPI=#{krb5} CC=#{ENV.cc}
-        CFLAGS=#{ENV.cflags} LINKFLAGS=#{ENV.ldflags}
-        OPENSSL=#{Formula["openssl@3"].opt_prefix}
-        APR=#{Formula["apr"].opt_prefix}
-        APU=#{Formula["apr-util"].opt_prefix}
-      ]
-
-      args << "ZLIB=#{Formula["zlib"].opt_prefix}" if OS.linux?
-
-      scons = Formula["scons"].opt_bin/"scons"
-      system scons, *args
-      system scons, "install"
-    end
 
     # Use existing system zlib and sqlite
     zlib = if OS.mac?
